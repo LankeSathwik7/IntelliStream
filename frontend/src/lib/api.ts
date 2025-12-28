@@ -48,7 +48,7 @@ export interface StreamEvent {
 }
 
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
-  const response = await fetch(`${API_URL}/api/chat/`, {
+  const response = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -66,7 +66,7 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
 export async function* streamChatMessage(
   request: ChatRequest
 ): AsyncGenerator<StreamEvent, void, unknown> {
-  const response = await fetch(`${API_URL}/api/chat/stream/`, {
+  const response = await fetch(`${API_URL}/api/chat/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -246,7 +246,7 @@ export async function getSettings(accessToken?: string): Promise<SettingsRespons
     headers["Authorization"] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch(`${API_URL}/api/settings/`, {
+  const response = await fetch(`${API_URL}/api/settings`, {
     method: "GET",
     headers,
   });
@@ -266,7 +266,7 @@ export async function saveSettings(
   settings: UserSettings,
   accessToken: string
 ): Promise<SettingsResponse> {
-  const response = await fetch(`${API_URL}/api/settings/`, {
+  const response = await fetch(`${API_URL}/api/settings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
