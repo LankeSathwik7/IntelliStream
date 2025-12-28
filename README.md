@@ -1,10 +1,10 @@
-# IntelliStream
+# 🧠 IntelliStream
 
 **Real-Time Agentic RAG Intelligence Platform**
 
 A sophisticated intelligence platform powered by a 6-agent LangGraph workflow for real-time document retrieval, analysis, synthesis, and self-improvement.
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -47,7 +47,7 @@ A sophisticated intelligence platform powered by a 6-agent LangGraph workflow fo
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Features
+## ✨ Features
 
 ### Core Features
 - **6-Agent Workflow**: Router, Research, Analysis, Synthesis, Reflection, Response
@@ -77,7 +77,7 @@ A sophisticated intelligence platform powered by a 6-agent LangGraph workflow fo
 - **Rate Limiting**: Upstash Redis for API protection
 - **Monitoring**: Axiom for logs and metrics
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Component | Technology | Free Tier |
 |-----------|------------|-----------|
@@ -97,7 +97,7 @@ A sophisticated intelligence platform powered by a 6-agent LangGraph workflow fo
 | Backend Hosting | HuggingFace Spaces | 2 vCPU, 16GB RAM |
 | Frontend Hosting | Cloudflare Pages | Unlimited |
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -176,7 +176,7 @@ npm run dev
 
 Visit http://localhost:3000
 
-## Environment Variables
+## 🔐 Environment Variables
 
 ### Backend (.env)
 
@@ -217,7 +217,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-## API Endpoints
+## 📡 API Endpoints
 
 ### Chat
 
@@ -283,7 +283,7 @@ POST /api/chat
 {"message": "What are the latest transformer architecture papers?"}
 ```
 
-## Deployment
+## ☁️ Deployment
 
 ### Backend (HuggingFace Spaces)
 
@@ -305,7 +305,7 @@ git push hf main
 3. Output directory: `frontend/out`
 4. Add environment variables
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 intellistream/
@@ -360,7 +360,7 @@ intellistream/
 └── README.md
 ```
 
-## License
+## 📄 License
 
 MIT
 
