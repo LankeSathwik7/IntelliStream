@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   },
 
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "https://darkhorse09-intellistream.hf.space",
+    NEXT_PUBLIC_API_URL: "https://darkhorse09-intellistream.hf.space",
   },
 
   // Trailing slashes for static export compatibility
