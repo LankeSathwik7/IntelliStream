@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Plus, MessageSquare, Trash2, Pencil, Check, PanelLeftClose, PanelLeft, Zap, Settings, LogIn, LogOut, User } from "lucide-react";
+import { X, Plus, MessageSquare, Trash2, Pencil, Check, PanelLeftClose, PanelLeft, Zap, Settings, LogIn, LogOut, User, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Conversation } from "@/hooks/useConversations";
@@ -21,6 +21,8 @@ interface SidebarProps {
   onSettingsClick?: () => void;
   onLoginClick?: () => void;
   onLogoutClick?: () => void;
+  onExportPDF?: () => Promise<void>;
+  hasMessages?: boolean;
 }
 
 export function Sidebar({
@@ -37,9 +39,22 @@ export function Sidebar({
   onSettingsClick,
   onLoginClick,
   onLogoutClick,
+  onExportPDF,
+  hasMessages = false,
 }: SidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!onExportPDF || isExporting) return;
+    setIsExporting(true);
+    try {
+      await onExportPDF();
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Prevent hydration mismatch by waiting for client mount
   useEffect(() => {
@@ -169,6 +184,23 @@ export function Sidebar({
 
           {/* Footer - User Profile & Settings */}
           <div className="border-t border-border p-3 space-y-2">
+            {/* Export PDF Button */}
+            {hasMessages && onExportPDF && (
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-10"
+                onClick={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                <span>{isExporting ? "Exporting..." : "Export to PDF"}</span>
+              </Button>
+            )}
+
             {/* Settings Button */}
             <Button
               variant="ghost"

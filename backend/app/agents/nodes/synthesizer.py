@@ -6,26 +6,23 @@ from typing import Dict
 from app.agents.state import AgentState
 from app.services.llm import llm_service
 
-SYNTHESIS_PROMPT = """You are an expert analyst synthesizing information for a user.
+SYNTHESIS_PROMPT = """You are a concise, accurate analyst. Answer based ONLY on the provided context.
 
 User Query: {query}
 
 Retrieved Context:
 {context}
 
-Analysis Results:
-- Key Entities: {entities}
-- Sentiment: {sentiment}
-- Key Facts: {key_facts}
+Key Facts: {key_facts}
 
-Synthesize this information into a clear, comprehensive response that:
-1. Directly addresses the user's query
-2. Incorporates relevant facts from the context
-3. Mentions key entities when relevant
-4. Reflects the overall sentiment if appropriate
-5. Uses citations like [1], [2] to reference sources
+RULES:
+1. BE CONCISE - Match response length to query complexity. Simple questions get 1-2 sentence answers.
+2. ONLY cite [1], [2] etc. if the specific information comes DIRECTLY from that numbered source.
+3. If a fact is NOT in any source, do NOT include it - say you don't have that information.
+4. Do NOT invent, assume, or hallucinate any information.
+5. If sources contradict, note the discrepancy.
 
-Provide a well-structured response:"""
+Response:"""
 
 
 async def synthesizer_agent(state: AgentState) -> Dict:
@@ -38,35 +35,25 @@ async def synthesizer_agent(state: AgentState) -> Dict:
     """
     start_time = time.time()
 
-    # Format entities and facts for prompt
-    entities_str = (
-        ", ".join(
-            [
-                f"{e.get('name', '')} ({e.get('type', '')})"
-                for e in state.get("entities", [])
-            ]
-        )
-        or "None identified"
-    )
-
-    sentiment = state.get("sentiment", {})
-    sentiment_str = f"{sentiment.get('overall', 'neutral')} (confidence: {sentiment.get('confidence', 0.5):.2f})"
-
     key_facts = state.get("key_facts", [])
-    facts_str = "\n".join([f"- {fact}" for fact in key_facts]) or "None extracted"
+    facts_str = "\n".join([f"- {fact}" for fact in key_facts]) if key_facts else "None"
+
+    # Estimate appropriate response length based on query complexity
+    query = state["query"]
+    query_words = len(query.split())
+    # Simple queries (< 10 words) get shorter responses
+    max_tokens = 300 if query_words < 10 else 600 if query_words < 25 else 1000
 
     prompt = SYNTHESIS_PROMPT.format(
-        query=state["query"],
+        query=query,
         context=state.get("context", "No context available"),
-        entities=entities_str,
-        sentiment=sentiment_str,
         key_facts=facts_str,
     )
 
     synthesized_text = await llm_service.generate(
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=1500,
+        temperature=0.2,  # Very low temperature for factual, grounded responses
+        max_tokens=max_tokens,
     )
 
     latency_ms = int((time.time() - start_time) * 1000)

@@ -33,6 +33,7 @@ class ChatRequest(BaseModel):
     thread_id: Optional[str] = None
     sources: List[str] = ["news", "research"]
     history: Optional[List[HistoryMessage]] = None  # Conversation history
+    streaming_speed: Optional[str] = "medium"  # slow, medium, fast
 
     @field_validator("message")
     @classmethod
@@ -106,12 +107,17 @@ async def chat_stream(request: ChatRequest, req: Request):
     if request.history:
         history = [{"role": h.role, "content": h.content} for h in request.history]
 
+    # Get streaming speed delay in seconds
+    speed_delays = {"slow": 0.06, "medium": 0.035, "fast": 0.01}
+    streaming_delay = speed_delays.get(request.streaming_speed or "medium", 0.035)
+
     async def event_generator():
         try:
             async for event in stream_agent_workflow(
                 query=request.message,
                 thread_id=thread_id,
                 history=history,
+                streaming_delay=streaming_delay,
             ):
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:

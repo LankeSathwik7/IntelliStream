@@ -7,24 +7,23 @@ from app.agents.state import AgentState
 from app.services.llm import llm_service
 
 
-REFLECTION_PROMPT = """You are a critical reviewer. Analyze this response and improve it.
+REFLECTION_PROMPT = """Review and improve this response. Be strict about accuracy and conciseness.
 
-Original Query: {query}
+Query: {query}
 
 Draft Response: {response}
 
-Sources Available: {sources}
+Available Sources:
+{sources}
 
-Review for:
-1. Accuracy - Are claims supported by the sources?
-2. Completeness - Does it fully answer the query?
-3. Clarity - Is it easy to understand?
-4. Citations - Are sources properly referenced?
+STRICT RULES:
+1. REMOVE any citation [N] if that specific information is NOT in source [N]
+2. REMOVE any fact not found in the sources - replace with "I don't have that information"
+3. SHORTEN the response - match length to query complexity. Simple queries need 1-2 sentences max.
+4. REMOVE unnecessary filler, preambles like "Based on the sources..." or conclusions like "In summary..."
+5. Keep ONLY directly relevant information
 
-If the response is good, return it with minor polish.
-If it has issues, rewrite it to fix them.
-
-Provide the improved response (no meta-commentary, just the response):"""
+Return ONLY the improved response (no commentary):"""
 
 
 async def reflection_agent(state: AgentState) -> Dict:
@@ -67,7 +66,7 @@ async def reflection_agent(state: AgentState) -> Dict:
     improved_response = await llm_service.generate(
         messages=[{"role": "user", "content": prompt}],
         model="llama-3.3-70b-versatile",
-        temperature=0.5,
+        temperature=0.3,  # Lower temperature for more consistent, factual improvements
         max_tokens=2000
     )
 

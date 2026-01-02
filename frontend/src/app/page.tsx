@@ -10,7 +10,23 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useChat } from "@/hooks/useChat";
 import { useConversations } from "@/hooks/useConversations";
 import { useAuth } from "@/hooks/useAuth";
+import { exportToPDF, downloadBlob } from "@/lib/api";
 import type { Message } from "@/types";
+
+// Load streaming speed from localStorage
+function getStreamingSpeed(): "slow" | "medium" | "fast" {
+  if (typeof window === "undefined") return "medium";
+  try {
+    const stored = localStorage.getItem("intellistream_settings");
+    if (stored) {
+      const settings = JSON.parse(stored);
+      return settings.streamingSpeed || "medium";
+    }
+  } catch {
+    // Ignore errors
+  }
+  return "medium";
+}
 
 export default function Home() {
   // Mounted state to prevent hydration mismatch
@@ -20,13 +36,23 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [streamingSpeed, setStreamingSpeed] = useState<"slow" | "medium" | "fast">("medium");
 
-  // Load sidebar state from localStorage after mount
+  // Load sidebar state and streaming speed from localStorage after mount
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem("sidebarOpen");
     // Default to true (open) if no saved preference
     setSidebarOpen(saved === null ? true : saved === "true");
+    // Load streaming speed
+    setStreamingSpeed(getStreamingSpeed());
+
+    // Listen for settings changes
+    const handleStorageChange = () => {
+      setStreamingSpeed(getStreamingSpeed());
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   // Persist sidebar state (only after mounted)
@@ -91,6 +117,8 @@ export default function Home() {
     initialThreadId: activeConversation?.threadId || null,
     onMessagesChange: handleMessagesChange,
     onThreadIdChange: handleThreadIdChange,
+    accessToken: session?.access_token || null,
+    streamingSpeed,
   });
 
   // Wrap sendMessage to ensure we have an active conversation
@@ -126,6 +154,33 @@ export default function Home() {
     renameConversation(id, newTitle);
   };
 
+  const handleExportPDF = useCallback(async () => {
+    if (chat.messages.length === 0) return;
+
+    const exportMessages = chat.messages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+      sources: msg.sources,
+    }));
+
+    const title = activeConversation?.title || "IntelliStream Conversation";
+
+    try {
+      const blob = await exportToPDF({
+        messages: exportMessages,
+        title,
+        include_sources: true,
+      });
+
+      // Determine file extension based on content type
+      const isHtml = blob.type.includes("html");
+      const ext = isHtml ? "html" : "pdf";
+      downloadBlob(blob, `intellistream-report.${ext}`);
+    } catch (error) {
+      console.error("Export failed:", error);
+    }
+  }, [chat.messages, activeConversation?.title]);
+
   return (
     <ErrorBoundary>
       <div className="flex h-full w-full bg-background overflow-hidden">
@@ -144,6 +199,8 @@ export default function Home() {
           onSettingsClick={() => setSettingsOpen(true)}
           onLoginClick={() => setAuthModalOpen(true)}
           onLogoutClick={signOut}
+          onExportPDF={handleExportPDF}
+          hasMessages={chat.messages.length > 0}
         />
 
         {/* Main Content - no transition to prevent header animation */}

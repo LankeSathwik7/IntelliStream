@@ -200,6 +200,22 @@ def _extract_stock_symbol(text: str) -> str:
     return ""
 
 
+def _extract_document_context(text: str) -> List[str]:
+    """Extract document names from context hints in the query."""
+    # Pattern: [Context: Documents available: doc1, doc2]
+    match = re.search(r'\[Context: Documents available: ([^\]]+)\]', text)
+    if match:
+        docs_str = match.group(1)
+        return [doc.strip() for doc in docs_str.split(',')]
+
+    # Pattern: [Document: filename]
+    doc_matches = re.findall(r'\[Document: ([^\]]+)\]', text)
+    if doc_matches:
+        return doc_matches
+
+    return []
+
+
 async def research_agent(state: AgentState) -> Dict:
     """
     Research Agent: Retrieves relevant documents using RAG + Web + Wikipedia + ArXiv.
@@ -229,6 +245,14 @@ async def research_agent(state: AgentState) -> Dict:
     history_topic = _get_topic_from_history(messages) if messages else None
     followup_location = _extract_location_from_followup(query) if history_topic else None
 
+    # Extract mentioned document names from query context
+    mentioned_docs = _extract_document_context(query)
+    # Also check recent messages for document context
+    for msg in messages[-4:] if len(messages) > 4 else messages:
+        content = msg.content if hasattr(msg, "content") else str(msg)
+        mentioned_docs.extend(_extract_document_context(content))
+    mentioned_docs = list(set(mentioned_docs))  # Deduplicate
+
     # Step 1: Check for URLs to scrape
     urls = _extract_urls(query)
     if urls:
@@ -254,7 +278,7 @@ async def research_agent(state: AgentState) -> Dict:
     # Always search, but filter results smartly for realtime queries
     documents, _ = await retriever.retrieve_with_context(
         query=query,
-        top_k=5,
+        top_k=8 if mentioned_docs else 5,  # Get more docs if user has uploaded documents
         context_window=500,
     )
 
@@ -265,6 +289,15 @@ async def research_agent(state: AgentState) -> Dict:
         content_lower = doc.get("content", "").lower()
         title_lower = doc.get("title", "").lower()
 
+        # Boost score for documents matching uploaded document names
+        is_mentioned_doc = any(
+            mentioned.lower() in title_lower or title_lower in mentioned.lower()
+            for mentioned in mentioned_docs
+        )
+        if is_mentioned_doc:
+            score = max(score, 0.85)  # Boost score for mentioned docs
+            doc["score"] = score
+
         # Higher threshold for realtime queries to filter out irrelevant docs
         min_score = 0.5 if is_realtime_query else 0.3
 
@@ -272,7 +305,7 @@ async def research_agent(state: AgentState) -> Dict:
             continue
 
         # For realtime queries, check if document is actually about that topic
-        if is_realtime_query:
+        if is_realtime_query and not is_mentioned_doc:  # Don't filter out explicitly mentioned docs
             is_relevant = False
             if is_weather:
                 weather_terms = ["weather", "temperature", "climate", "forecast", "rain", "humidity", "wind"]
@@ -290,7 +323,7 @@ async def research_agent(state: AgentState) -> Dict:
         all_documents.append(doc)
         rag_count += 1
 
-    actions.append(f"rag_{rag_count}_docs" + ("_filtered" if is_realtime_query else ""))
+    actions.append(f"rag_{rag_count}_docs" + ("_filtered" if is_realtime_query else "") + (f"_mentioned_{len(mentioned_docs)}" if mentioned_docs else ""))
 
     # Step 3: If factual query, search Wikipedia
     if _is_factual_query(query):

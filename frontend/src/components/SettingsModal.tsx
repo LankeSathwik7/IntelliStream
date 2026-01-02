@@ -47,6 +47,8 @@ function saveLocalSettings(settings: Settings): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem("intellistream_settings", JSON.stringify(settings));
+    // Dispatch storage event to notify other components
+    window.dispatchEvent(new Event("storage"));
   } catch {
     // Ignore errors
   }

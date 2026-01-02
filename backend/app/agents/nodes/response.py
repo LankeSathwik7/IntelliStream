@@ -33,9 +33,14 @@ async def response_agent(state: AgentState) -> Dict:
         if not conversation_messages:
             conversation_messages = [{"role": "user", "content": state["query"]}]
 
+        # Add system prompt for concise responses
+        system_prompt = "Be concise. Match response length to question complexity. Simple questions get 1-2 sentence answers. Do not pad responses with unnecessary information."
+
         final_response = await llm_service.generate(
             messages=conversation_messages,
-            temperature=0.7,
+            system_prompt=system_prompt,
+            temperature=0.3,  # Lower temperature for more accurate responses
+            max_tokens=500,  # Limit length for direct responses
         )
     elif state.get("needs_clarification"):
         final_response = state.get(

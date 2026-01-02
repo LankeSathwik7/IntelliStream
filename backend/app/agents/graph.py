@@ -111,6 +111,7 @@ async def stream_agent_workflow(
     thread_id: str,
     user_id: str = None,
     history: list = None,
+    streaming_delay: float = 0.035,
 ) -> AsyncGenerator[Dict, None]:
     """
     Stream the agent workflow with real-time updates.
@@ -197,8 +198,8 @@ async def stream_agent_workflow(
                 "type": "token",
                 "data": {"content": streamed_content},
             }
-            # Slightly longer delay for visible streaming effect
-            await asyncio.sleep(0.035)
+            # Use the configured streaming delay
+            await asyncio.sleep(streaming_delay)
 
         # Send final response with sources
         yield {

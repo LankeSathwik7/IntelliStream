@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef } from "react";
 import { streamChatMessage } from "@/lib/api";
+import { playSuccessSound, playErrorSound } from "@/lib/sounds";
+import { showResponseNotification, showErrorNotification } from "@/lib/notifications";
 import type { Message, AgentStatus, Attachment } from "@/types";
 
 // Generate unique ID with counter to prevent collisions
@@ -26,6 +28,8 @@ interface UseChatOptions {
   initialThreadId?: string | null;
   onMessagesChange?: (messages: Message[]) => void;
   onThreadIdChange?: (threadId: string | null) => void;
+  accessToken?: string | null;
+  streamingSpeed?: "slow" | "medium" | "fast";
 }
 
 export function useChat(options: UseChatOptions = {}) {
@@ -35,6 +39,8 @@ export function useChat(options: UseChatOptions = {}) {
     initialThreadId = null,
     onMessagesChange,
     onThreadIdChange,
+    accessToken = null,
+    streamingSpeed = "medium",
   } = options;
 
   // Track the last conversation ID to detect switches
@@ -142,7 +148,8 @@ export function useChat(options: UseChatOptions = {}) {
           message: content,
           thread_id: threadId || undefined,
           history: history.length > 0 ? history : undefined,
-        })) {
+          streaming_speed: streamingSpeed,
+        }, accessToken || undefined)) {
           if (event.type === "agent_status" && event.data?.agent) {
             const agent = event.data.agent as keyof AgentStatus;
             const status = event.data.status === "started" ? "running" : "completed";
@@ -197,9 +204,17 @@ export function useChat(options: UseChatOptions = {}) {
 
           return result;
         });
+
+        // Play success sound and show notification when response completes
+        playSuccessSound();
+        showResponseNotification();
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An error occurred";
         setError(errorMessage);
+
+        // Play error sound and show notification
+        playErrorSound();
+        showErrorNotification(errorMessage);
 
         // Update assistant message with error
         setMessages((prev) =>
@@ -217,7 +232,7 @@ export function useChat(options: UseChatOptions = {}) {
         setIsLoading(false);
       }
     },
-    [isLoading, threadId, resetAgentStatus, messages]
+    [isLoading, threadId, resetAgentStatus, messages, accessToken, streamingSpeed]
   );
 
   const sendMessageWithAttachments = useCallback(
@@ -269,7 +284,8 @@ export function useChat(options: UseChatOptions = {}) {
           message: content,
           thread_id: threadId || undefined,
           history: history.length > 0 ? history : undefined,
-        })) {
+          streaming_speed: streamingSpeed,
+        }, accessToken || undefined)) {
           if (event.type === "agent_status" && event.data?.agent) {
             const agent = event.data.agent as keyof AgentStatus;
             const status = event.data.status === "started" ? "running" : "completed";
@@ -323,9 +339,17 @@ export function useChat(options: UseChatOptions = {}) {
 
           return result;
         });
+
+        // Play success sound and show notification when response completes
+        playSuccessSound();
+        showResponseNotification();
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An error occurred";
         setError(errorMessage);
+
+        // Play error sound and show notification
+        playErrorSound();
+        showErrorNotification(errorMessage);
 
         setMessages((prev) =>
           prev.map((msg) =>
@@ -338,7 +362,7 @@ export function useChat(options: UseChatOptions = {}) {
         setIsLoading(false);
       }
     },
-    [isLoading, threadId, resetAgentStatus, setMessages, messages]
+    [isLoading, threadId, resetAgentStatus, setMessages, messages, accessToken, streamingSpeed]
   );
 
   const clearMessages = useCallback(() => {

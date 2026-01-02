@@ -10,6 +10,7 @@ export interface ChatRequest {
   thread_id?: string;
   sources?: string[];
   history?: HistoryMessage[];
+  streaming_speed?: "slow" | "medium" | "fast";
 }
 
 export interface ChatResponse {
@@ -47,12 +48,21 @@ export interface StreamEvent {
   };
 }
 
-export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
+export async function sendChatMessage(
+  request: ChatRequest,
+  accessToken?: string
+): Promise<ChatResponse> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+
   const response = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(request),
   });
 
@@ -64,13 +74,20 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
 }
 
 export async function* streamChatMessage(
-  request: ChatRequest
+  request: ChatRequest,
+  accessToken?: string
 ): AsyncGenerator<StreamEvent, void, unknown> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+
   const response = await fetch(`${API_URL}/api/chat/stream`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(request),
   });
 
