@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Use 'export' for Cloudflare Pages static deployment
   // Change to 'standalone' for Docker deployment
-  output: process.env.BUILD_TARGET === "docker" ? "standalone" : "export",
+  // output: process.env.BUILD_TARGET === "docker" ? "standalone" : "export",
 
   // Disable image optimization for static export (use next/image with unoptimized)
   images: {
